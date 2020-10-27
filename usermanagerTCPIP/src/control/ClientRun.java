@@ -3,24 +3,18 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package usermanager;
+package control;
 
-
-import usermanager.view.LoginView;
-import usermanager.view.RegisterView;
+import view.ClientView;
 
 /**
  *
  * @author Nguyen Thu Thuy 1608
  */
-public class Test {
+public class ClientRun {
 
     public static void main(String[] args) {
-        LoginView view = new LoginView();
-       
+        ClientView view = new ClientView();
         view.setVisible(true);
-//      RegisterView registerView = new RegisterView();
-//      registerView.setVisible(true);
     }
-
 }

@@ -1,0 +1,10 @@
+CREATE DATABASE user;
+USE user;
+CREATE TABLE user(
+id VARCHAR(10) NOT NULL,
+username VARCHAR(20) NOT NULL,
+password VARCHAR(20) NOT NULL,
+yearofbirth INT(4) NOT NULL,
+CONSTRAINT pk_user PRIMARY KEY (id)
+)
+SELECT *FROM user.user;
