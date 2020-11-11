@@ -11,10 +11,10 @@ import control.ServerControl;
  *
  * @author Nguyen Thu Thuy 1608
  */
-public final class ServerView {
+public class ServerView {
 
     public ServerView() {
-        ServerControl serverControl = new ServerControl();
+        new ServerControl();
         showMessage("TCP server is running...");
     }
 
