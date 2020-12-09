@@ -13,7 +13,7 @@ import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ChineseChess extends JFrame implements ActionListener{
+public class Client extends JFrame implements ActionListener{
         
 	public static final Color backGround = new Color(245,250,160);
 	public static final Color selectedBackground = new Color(242,242,242);
@@ -23,38 +23,41 @@ public class ChineseChess extends JFrame implements ActionListener{
 	//graphical user interface setup
 	JLabel hostLabel = new JLabel("HostIP");
 	JLabel portLabel = new JLabel("Port");
-	JLabel nickName = new JLabel("Tên:");
+	JLabel userName = new JLabel("Tên:");
         JLabel passWord = new JLabel("Mật khẩu:");
         JLabel listOnlineLabel = new JLabel("Danh sách online: ");
-	JTextField hostT = new JTextField("127.0.0.1");//default
-	JTextField portT = new JTextField("1111");//default
+	JTextField hostT = new JTextField();
+	JTextField portT = new JTextField();
         
         
-	JTextField userNameT = new JTextField("Player1");
-        JTextField passwordT = new JTextField("***");//default
+	JTextField userNameT = new JTextField();
+        JPasswordField passwordT = new JPasswordField();
+        //default
 	JButton connect = new JButton("Đăng nhập");
 	JButton disconnect = new JButton("Đăng xuất");
 	JButton surrender = new JButton("Đầu hàng");
-	JButton challenge = new JButton("Mời chơi");
-	JComboBox otherUsersList = new JComboBox();
+	JButton challenge = new JButton("Thách đấu");
+	JComboBox otherPlayersList = new JComboBox();
 	JButton acceptChallenge = new JButton("Chấp nhận");
 	JButton declineChallenge = new JButton("Từ chối");
-	int width = 60;//distance between lines
+	int width = 60;
 	ChessPiece[][] chessPieces = new ChessPiece[9][10];
 	Board board = new Board(chessPieces, width, this);
 	JPanel jpRight = new JPanel();
 	JSplitPane spane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, board, jpRight);
 	 public static Connection con;
 	boolean myTurn = false;
-	int myColor = 0;//0 is red, 1 is white
+	int myColor = 0;
 	Socket socket;
-	AgentclientThread act;
-	public ChineseChess(){
-		this.initialComponent();//add components
-		this.addComponentListener();//add listeners
+	AgentClientThread act;
+	public Client(){
+		this.initialComponent();
+		this.addComponentListener();
 		this.intialState();
 		this.initialPieces();
 		this.initialFrame();
+                
+                
 	}
 	
 	public void initialComponent(){
@@ -67,13 +70,14 @@ public class ChineseChess extends JFrame implements ActionListener{
 		jpRight.add(this.portLabel);
 		this.portT.setBounds(70,30,80,20);
 		jpRight.add(this.portT);
-		this.nickName.setBounds(10,60,80,20);
-		jpRight.add(this.nickName);    
+		this.userName.setBounds(10,60,80,20);
+		jpRight.add(this.userName);    
 		this.userNameT.setBounds(10,80,150,20);
 		jpRight.add(this.userNameT);
                 this.passWord.setBounds(10,100,80,20);
 		jpRight.add(this.passWord);
                 this.passwordT.setBounds(10,120,150,20);
+                this.passwordT.setEchoChar('*');
 		jpRight.add(this.passwordT);
 		this.connect.setBounds(10,150,100,20);
 		jpRight.add(this.connect);
@@ -81,8 +85,8 @@ public class ChineseChess extends JFrame implements ActionListener{
 		jpRight.add(this.disconnect);
                 this.listOnlineLabel.setBounds(10,180,150,20);
 		jpRight.add(this.listOnlineLabel);
-		this.otherUsersList.setBounds(10,210,210,20);
-		jpRight.add(this.otherUsersList);
+		this.otherPlayersList.setBounds(10,210,210,20);
+		jpRight.add(this.otherPlayersList);
 		this.challenge.setBounds(10,240,100,20);
 		jpRight.add(this.challenge);
 		this.surrender.setBounds(120,240,100,20);
@@ -148,7 +152,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 	}
 	
 	public void initialFrame(){
-		this.setTitle("Chinese chess!");
+		this.setTitle("Game Cờ Tướng Thi Đấu Đối Kháng Online");
 		this.add(this.spane);
 		spane.setDividerLocation(730);
 		spane.setDividerSize(4);
@@ -163,17 +167,17 @@ public class ChineseChess extends JFrame implements ActionListener{
 						return;
 					}
 					try{
-						if(act.challenger != null){//playing with someone
+						if(act.challenger != null){ /// nếu đang chơi mà thoát khỏi cửa sổ
 							try{
-								//surrender message
-								act.output.writeUTF("<#GIVEUP#>"+act.challenger);
+								//gửi thông điệp đầu hàng luôn 
+								act.output.writeUTF("GIVEUP"+act.challenger);
 							}
 							catch(Exception ee){
 								ee.printStackTrace();
 							}
 						}
-						act.output.writeUTF("<#CLIENT_LEAVE#>");//leave message
-						act.connected = false;//end client
+						act.output.writeUTF("CLIENT_LEAVE");//gửi thông điệp rời khỏi
+						act.connected = false;//ngắt kết nối
 						act = null;	
 					}
 					catch(Exception ee){
@@ -190,7 +194,7 @@ public class ChineseChess extends JFrame implements ActionListener{
                     try {
                         this.connectEvent();
                     } catch (Exception ex) {
-                        Logger.getLogger(ChineseChess.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
                     }
 		}else if(e.getSource() == this.disconnect){
 			this.disconnectEvent();
@@ -207,9 +211,9 @@ public class ChineseChess extends JFrame implements ActionListener{
 
 	public void connectEvent() throws Exception{
 		int port = 0;
-		try{//get port id
+		try{//lấy cổng
 			port=Integer.parseInt(this.portT.getText().trim());
-		}catch(Exception ee){//not whole number
+		}catch(Exception ee){
 			JOptionPane.showMessageDialog(this,"Cổng phải là số nguyên","Error!", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
@@ -217,13 +221,12 @@ public class ChineseChess extends JFrame implements ActionListener{
 			JOptionPane.showMessageDialog(this,"Cổng nhập sai","Error!", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		String name = this.userNameT.getText().trim();
-                String password = this.passwordT.getText().trim();
 
 		try {
-			//adjusting setup
+			
+                        //tạo socket 
 			socket=new Socket(this.hostT.getText().trim(),port);
-			act=new AgentclientThread(this);
+			act=new AgentClientThread(this);
 			act.start();	
 			this.hostT.setEnabled(false);
 			this.portT.setEnabled(false);
@@ -234,8 +237,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 			this.challenge.setEnabled(true);
 			this.acceptChallenge.setEnabled(false);
 			this.declineChallenge.setEnabled(false);
-			this.surrender.setEnabled(false);
-			
+			this.surrender.setEnabled(false);		
 		}
 		catch(Exception ee){
 			JOptionPane.showMessageDialog(this,"Lỗi kết nối!","Error!", JOptionPane.ERROR_MESSAGE);
@@ -245,14 +247,14 @@ public class ChineseChess extends JFrame implements ActionListener{
 	
 	public void disconnectEvent(){
 		try{
-			//changing setup
-			this.act.output.writeUTF("<#CLIENT_LEAVE#>");//thông điệp đăng xuất
+			//ngắt kết nối
+			this.act.output.writeUTF("CLIENT_LEAVE");//thông điệp đăng xuất
 			this.act.connected = false;//kết thúc kết nối
 			this.act = null;
 			this.hostT.setEnabled(!false);
 			this.portT.setEnabled(!false);
 			this.userNameT.setEnabled(!false);
-                        this.passwordT.setEnabled(false);
+                        this.passwordT.setEnabled(!false);
 			this.connect.setEnabled(!false);
 			this.disconnect.setEnabled(!true);
 			this.challenge.setEnabled(!true);
@@ -267,12 +269,12 @@ public class ChineseChess extends JFrame implements ActionListener{
 	
 	public void challengeEvent(){
 		//gửi lựa chọn đối thủ
-		Object o = this.otherUsersList.getSelectedItem();
+		Object o = this.otherPlayersList.getSelectedItem();
 		if(o == null || ((String)o).equals("")) {
 			JOptionPane.showMessageDialog(this,"Hãy chọn một đối thủ trước","Error!", JOptionPane.ERROR_MESSAGE);
 		}
 		else{
-			String opponent=(String)this.otherUsersList.getSelectedItem();
+			String opponent=(String)this.otherPlayersList.getSelectedItem();
 			try{
 				this.hostT.setEnabled(false);
 				this.portT.setEnabled(false);
@@ -287,7 +289,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 				this.act.challenger = opponent;
 				this.myTurn = true;
 				this.myColor = 0;
-				this.act.output.writeUTF("<#CHALLENGE#>"+opponent);
+				this.act.output.writeUTF("CHALLENGE"+opponent);
 				JOptionPane.showMessageDialog(this,"Đã gửi lời mời","message", JOptionPane.INFORMATION_MESSAGE);
 			}
 			catch(Exception ee){
@@ -298,7 +300,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 	
 	public void acceptChallengeEvent(){
 		try{	//thông điệp chấp nhận
-			this.act.output.writeUTF("<#CHALACC#>"+this.act.challenger);
+			this.act.output.writeUTF("CHALACC"+this.act.challenger);
 			this.myTurn = false;
 			this.myColor=1;
 			this.hostT.setEnabled(false);
@@ -319,7 +321,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 	
 	public void declineChallengeEvent(){
 		try{// thông điệp từ chối
-			this.act.output.writeUTF("<#CHAREJECT#>"+this.act.challenger);
+			this.act.output.writeUTF("CHAREJECT"+this.act.challenger);
 			this.act.challenger = null;
 			this.hostT.setEnabled(false);
 			this.portT.setEnabled(false);
@@ -338,12 +340,12 @@ public class ChineseChess extends JFrame implements ActionListener{
 	}
 	
 	public void surrenderEvent(){
-		try{   //deliver surrender message
-			this.act.output.writeUTF("<#GIVEUP#>"+this.act.challenger);
+		try{   //thông điệp đầu hàng
+			this.act.output.writeUTF("GIVEUP"+this.act.challenger);
 			this.act.challenger = null;
 			this.myColor = 0;
 			this.myTurn = false;
-			this.next();//prepare for next round
+			this.next();// setup lượt chơi mới
 			this.hostT.setEnabled(false);
 			this.portT.setEnabled(false);
 			this.userNameT.setEnabled(false);
@@ -361,7 +363,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 	}
 	
 	public void next(){
-		for(int i = 0;i < 9; ++i){//empty the chess pieces
+		for(int i = 0;i < 9; ++i){//xếp lại các quân cờ
 			for(int j = 0;j < 10; ++j){
 				this.chessPieces[i][j] = null;
 			}
@@ -372,7 +374,7 @@ public class ChineseChess extends JFrame implements ActionListener{
 	}
 	
 	public static void main(String args[]){
-		new ChineseChess();
+		new Client();
 	}
 
     private void printSQLException(SQLException e) {

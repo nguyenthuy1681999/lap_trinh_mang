@@ -4,15 +4,15 @@ import javax.swing.*;
 import java.util.*;
 import java.io.*;
 
-public class AgentclientThread extends Thread{
-	//the main client who assigned this agent
-	ChineseChess client;
+public class AgentClientThread extends Thread{
+	
+	Client client;
 	boolean connected = true;
 	DataInputStream input;
 	DataOutputStream output;
 	String challenger=null;
-	//Constructor
-	public AgentclientThread(ChineseChess client){
+
+	public AgentClientThread(Client client){
 		this.client = client;
 		try{
 			input = new DataInputStream(client.socket.getInputStream());
@@ -21,7 +21,7 @@ public class AgentclientThread extends Thread{
                         String password = client.passwordT.getText().trim();
                         // them doi tuong player de gui
                         
-			output.writeUTF("<#LOGIN__PLAYER#>"+"-"+name+"-"+password);
+			output.writeUTF("LOGIN__PLAYER"+"-"+name+"-"+password);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -30,36 +30,37 @@ public class AgentclientThread extends Thread{
 	public void run(){
 		while(connected){
 			try{
+                                // nhận các thông điệp bên server gửi sang
 				String msg = input.readUTF().trim();
-				if(msg.startsWith("<#ERROR_LOGIN#>")){
+				if(msg.startsWith("ERROR_LOGIN")){ // lỗi đăng nhập do sai tên hoặc mật khẩu
 					this.errorLogin();
 				}
 				else
-                                if(msg.startsWith("<#NICK_LIST#>")){
+                                if(msg.startsWith("NICK_LIST")){ // danh sách nick đang online
 					this.listOnline(msg);
 				}
-				else if(msg.startsWith("<#SERVER_DOWN#>")){
+				else if(msg.startsWith("SERVER_DOWN")){ // đóng server
 					this.serverDown();
 				}
-				else if(msg.startsWith("<#CHALLENGE#>")){
+				else if(msg.startsWith("CHALLENGE")){ // gửi thách đấu
 					this.challenge(msg);
 				}
-				else if(msg.startsWith("<#CHALACC#>")){
+				else if(msg.startsWith("CHALACC")){ // chấp nhận thách đấu
 					this.accept();	
 				}
-				else if(msg.startsWith("<#CHAREJECT#>")){
+				else if(msg.startsWith("CHAREJECT")){ // từ chối thách đấu
 					this.decline();
 				}
-				else if(msg.startsWith("<#BUSY#>")){
+				else if(msg.startsWith("BUSY")){ // đối thủ đang chơi
 					this.busy();
 				}
-				else if(msg.startsWith("<#MOVE#>")){
+				else if(msg.startsWith("MOVE")){ // di chuyên
 					this.movePiece(msg);
 				}
-				else if(msg.startsWith("<#WINNER#>")){
+				else if(msg.startsWith("WINNER")){ // người thắng
 					this.alertwinner();
 				}
-                                else if(msg.startsWith("<#LOSER#>")){
+                                else if(msg.startsWith("LOSER")){ // người thua
 					this.alertloser();
 				}
 			}catch(Exception e){
@@ -94,16 +95,16 @@ public class AgentclientThread extends Thread{
 	}
 	
 	public void listOnline(String msg){
-		String s = msg.substring(13);
+		String s = msg.substring(9);
 		String[] na = s.split("\\|");
 		Vector v = new Vector();
-		//process the user-list string
+		//tạo list online
 		for(int i = 0; i < na.length; ++i){
 			if((na[i].trim().length() != 0) && (!na[i].trim().equals(client.userNameT.getText().trim()))){
 				v.add(na[i]);
 			}
 		}
-		client.otherUsersList.setModel(new DefaultComboBoxModel(v));
+		client.otherPlayersList.setModel(new DefaultComboBoxModel(v));
 	}
 	
 	public void serverDown(){
@@ -124,9 +125,9 @@ public class AgentclientThread extends Thread{
 	
 	public void challenge(String msg){
 		try{
-			String name = msg.substring(13);
-			if(this.challenger == null){//the player is not currently playing anyone
-				challenger = msg.substring(13);
+			String name = msg.substring(9);
+			if(this.challenger == null){//người chơi đang không chơi với ai
+				challenger = msg.substring(9);
 				this.client.hostT.setEnabled(false);
 				this.client.portT.setEnabled(false);
 				this.client.userNameT.setEnabled(false);
@@ -138,8 +139,8 @@ public class AgentclientThread extends Thread{
 				this.client.surrender.setEnabled(false);
 				JOptionPane.showMessageDialog(this.client,challenger+" đã mời bạn!", "Message",JOptionPane.INFORMATION_MESSAGE);
 			}
-			else{//if the player is busy
-				this.output.writeUTF("<#BUSY#>"+name);
+			else{//nếu đã chơi
+				this.output.writeUTF("BUSY"+name);
 			}
 		}
 		catch(IOException e){
@@ -192,7 +193,7 @@ public class AgentclientThread extends Thread{
 		this.challenger = null;
 	}
 	
-	public void movePiece(String msg){
+	public void movePiece(String msg) throws IOException{
 		int length = msg.length();
 		int startI = Integer.parseInt(msg.substring(length-4,length-3));
 		int startJ = Integer.parseInt(msg.substring(length-3,length-2));

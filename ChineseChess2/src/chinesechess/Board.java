@@ -2,6 +2,7 @@ package chinesechess;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import javax.swing.*;
 
 public class Board extends JPanel implements MouseListener{
@@ -17,12 +18,12 @@ public class Board extends JPanel implements MouseListener{
 	int endX = -1;//end location 
 	int endY = -1;
 	public ChessPiece pieces[][];
-	ChineseChess cchess = null;
+	Client client = null;
 	GameRules rules;
 	
 	//Constructor
-	public Board(ChessPiece pieces[][], int width, ChineseChess chess){
-		this.cchess = chess;
+	public Board(ChessPiece pieces[][], int width, Client chess){
+		this.client = chess;
 		this.pieces = pieces;
 		this.width = width;
 		rules = new GameRules(pieces);
@@ -35,7 +36,7 @@ public class Board extends JPanel implements MouseListener{
 		Graphics2D g = (Graphics2D)g1;
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		Color c = g.getColor();//save current color
-		g.setColor(ChineseChess.backGround);
+		g.setColor(Client.backGround);
 		g.fill3DRect(60,30,580,630,false);
 		g.setColor(Color.black);
 		//drawing the board 
@@ -79,9 +80,9 @@ public class Board extends JPanel implements MouseListener{
 			for(int j = 0;j < 10; ++j){//pieces
 				if(pieces[i][j] != null){
 					if(this.pieces[i][j].getSelected() != false){
-						g.setColor(ChineseChess.selectedBackground);
+						g.setColor(Client.selectedBackground);
 						g.fillOval(110+i*60-25,80+j*60-25,50,50);
-						g.setColor(ChineseChess.selectedTextBackground);
+						g.setColor(Client.selectedTextBackground);
 					}
 					else{
 						g.fillOval(110+i*60-25,80+j*60-25,50,50);
@@ -96,7 +97,7 @@ public class Board extends JPanel implements MouseListener{
 	}
 	
 	public void mouseClicked(MouseEvent e){
-		if(this.cchess.myTurn == true){//is it actually the player's turn
+		if(this.client.myTurn == true){//is it actually the player's turn
 			int i = -1;
 			int j = -1;
 			int[] pos = getPos(e);
@@ -123,8 +124,8 @@ public class Board extends JPanel implements MouseListener{
 							boolean canMove = rules.canMove(startX,startY,endX,endY,name);
 							if(canMove){
 								try{
-									this.cchess.act.output.writeUTF("<#MOVE#>"+ this.cchess.act.challenger+startX+startY+endX+endY);
-									this.cchess.myTurn = false;
+									this.client.act.output.writeUTF("MOVE"+ this.client.act.challenger+startX+startY+endX+endY);
+									this.client.myTurn = false;
 								    if(pieces[endX][endY].getName().equals("T.R") || pieces[endX][endY].getName().equals("T.W")){
 								    	this.win();
 								    }
@@ -149,7 +150,7 @@ public class Board extends JPanel implements MouseListener{
 					}
 				}
 			}
-			this.cchess.repaint();
+			this.client.repaint();
 		}
 	}
 	
@@ -179,8 +180,8 @@ public class Board extends JPanel implements MouseListener{
 	
 	public void noFocus(int i,int j){
 		if(this.pieces[i][j] != null){
-			if(this.cchess.myColor == 0){
-				if(this.pieces[i][j].getColor().equals(ChineseChess.redColor)){
+			if(this.client.myColor == 0){
+				if(this.pieces[i][j].getColor().equals(Client.redColor)){
 					this.pieces[i][j].setSelected(true);
 					selected = true;
 					startX = i;
@@ -188,7 +189,7 @@ public class Board extends JPanel implements MouseListener{
 				}
 			}
 			else{
-				if(this.pieces[i][j].getColor().equals(ChineseChess.whiteColor)){
+				if(this.pieces[i][j].getColor().equals(Client.whiteColor)){
 					this.pieces[i][j].setSelected(true);
 					selected = true;
 					startX = i;
@@ -201,22 +202,22 @@ public class Board extends JPanel implements MouseListener{
 	public void win(){
 		pieces[endX][endY] = pieces[startX][startY];//king is dead
 		pieces[startX][startY] = null;
-		this.cchess.repaint();//paint the final move
-		JOptionPane.showMessageDialog(this.cchess,"Chúc mừng! Bạn đã ăn tướng!","Message", JOptionPane.INFORMATION_MESSAGE);           
-                //prepare for next games
-		this.cchess.act.challenger = null;
-		this.cchess.myColor = 0;
-		this.cchess.myTurn = false;
-		this.cchess.next();
-		this.cchess.hostT.setEnabled(false);
-		this.cchess.portT.setEnabled(false);
-		this.cchess.userNameT.setEnabled(false);
-		this.cchess.connect.setEnabled(false);
-		this.cchess.disconnect.setEnabled(true);
-		this.cchess.challenge.setEnabled(true);
-		this.cchess.acceptChallenge.setEnabled(false);
-		this.cchess.declineChallenge.setEnabled(false);
-		this.cchess.surrender.setEnabled(false);
+		this.client.repaint();//paint the final move
+		JOptionPane.showMessageDialog(this.client,"Đã ăn tướng, đối thủ sắp đầu hàng!","Message", JOptionPane.INFORMATION_MESSAGE);           
+//                prepare for next games
+//		this.client.act.challenger = null;
+		this.client.myColor = 0;
+		this.client.myTurn = false;
+		this.client.next();
+		this.client.hostT.setEnabled(false);
+		this.client.portT.setEnabled(false);
+		this.client.userNameT.setEnabled(false);
+		this.client.connect.setEnabled(false);
+		this.client.disconnect.setEnabled(true);
+		this.client.challenge.setEnabled(true);
+		this.client.acceptChallenge.setEnabled(false);
+		this.client.declineChallenge.setEnabled(false);
+		this.client.surrender.setEnabled(false);
 		startX = -1;
 		startY = -1;
 		endX = -1;
@@ -228,11 +229,11 @@ public class Board extends JPanel implements MouseListener{
 		selected=false;
 	}
 	
-	public void gameNotEnd(){
+	public void gameNotEnd() throws IOException{
 		pieces[endX][endY] = pieces[startX][startY];
 		pieces[startX][startY] = null;
 		pieces[endX][endY].setSelected(false);
-		this.cchess.repaint();//paint the move
+		this.client.repaint();//paint the move
 		//update king's locations if king moved
 		if(pieces[endX][endY].getName().equals("T.R")){
 			king1x = endX;
@@ -251,21 +252,22 @@ public class Board extends JPanel implements MouseListener{
 				}
 			}
 			if(count == 0){//game rule
-//		    	JOptionPane.showMessageDialog(this.cchess,"Bạn thua! Bạn được 0đ!","Message", JOptionPane.INFORMATION_MESSAGE);
+//		    	JOptionPane.showMessageDialog(this.client,"Bạn thua rồi, đầu hàng đi","Message", JOptionPane.INFORMATION_MESSAGE);
+//                        this.client.act.output.writeUTF("LOSER");
 		    	//ready for future games
-		    	this.cchess.act.challenger = null;
-				this.cchess.myColor = 0;
-				this.cchess.myTurn = false;
-				this.cchess.next();
-				this.cchess.hostT.setEnabled(false);
-				this.cchess.portT.setEnabled(false);
-				this.cchess.userNameT.setEnabled(false);
-				this.cchess.connect.setEnabled(false);
-				this.cchess.disconnect.setEnabled(true);
-				this.cchess.challenge.setEnabled(true);
-				this.cchess.acceptChallenge.setEnabled(false);
-				this.cchess.declineChallenge.setEnabled(false);
-				this.cchess.surrender.setEnabled(false);
+		    	this.client.act.challenger = null;
+				this.client.myColor = 0;
+				this.client.myTurn = false;
+				this.client.next();
+				this.client.hostT.setEnabled(false);
+				this.client.portT.setEnabled(false);
+				this.client.userNameT.setEnabled(false);
+				this.client.connect.setEnabled(false);
+				this.client.disconnect.setEnabled(true);
+				this.client.challenge.setEnabled(true);
+				this.client.acceptChallenge.setEnabled(false);
+				this.client.declineChallenge.setEnabled(false);
+				this.client.surrender.setEnabled(true);
 				king1x = 4;
 				king1y = 0;
 				king2x = 4;
@@ -281,12 +283,12 @@ public class Board extends JPanel implements MouseListener{
 	
 	public void noPieces(){
 		try{
-			this.cchess.act.output.writeUTF("<#MOVE#>"+this.cchess.act.challenger+startX+startY+endX+endY);
-			this.cchess.myTurn = false;
+			this.client.act.output.writeUTF("MOVE"+this.client.act.challenger+startX+startY+endX+endY);
+			this.client.myTurn = false;
 			pieces[endX][endY] = pieces[startX][startY];
 			pieces[startX][startY] = null;
 			pieces[endX][endY].setSelected(false);
-			this.cchess.repaint();//paint the move
+			this.client.repaint();//paint the move
 			
 			//update king's information if applicable
 			if(pieces[endX][endY].getName().equals("T.R")){
@@ -307,21 +309,22 @@ public class Board extends JPanel implements MouseListener{
 					}
 				}
 				if(count == 0){//loose the game
-//			    	JOptionPane.showMessageDialog(this.cchess,"Bạn thua! không được điểm!","Message", JOptionPane.INFORMATION_MESSAGE);
-			    	//ready for the next game
-			    	this.cchess.act.challenger = null;
-					this.cchess.myColor = 0;
-					this.cchess.myTurn = false;
-					this.cchess.next();
-					this.cchess.hostT.setEnabled(false);
-					this.cchess.portT.setEnabled(false);
-					this.cchess.userNameT.setEnabled(false);
-					this.cchess.connect.setEnabled(false);
-					this.cchess.disconnect.setEnabled(true);
-					this.cchess.challenge.setEnabled(true);
-					this.cchess.acceptChallenge.setEnabled(false);
-					this.cchess.declineChallenge.setEnabled(false);
-					this.cchess.surrender.setEnabled(false);
+			    	JOptionPane.showMessageDialog(this.client,"Bạn thua rồi, đầu hàng đi!","Message", JOptionPane.INFORMATION_MESSAGE);
+
+//                                this.client.act.output.writeUTF("LOSER");
+			    	this.client.act.challenger = null;
+					this.client.myColor = 0;
+					this.client.myTurn = false;
+					this.client.next();
+					this.client.hostT.setEnabled(false);
+					this.client.portT.setEnabled(false);
+					this.client.userNameT.setEnabled(false);
+					this.client.connect.setEnabled(false);
+					this.client.disconnect.setEnabled(true);
+					this.client.challenge.setEnabled(true);
+					this.client.acceptChallenge.setEnabled(false);
+					this.client.declineChallenge.setEnabled(false);
+					this.client.surrender.setEnabled(true);
 					king1x = 4;
 					king1y = 0;
 					king2x = 4;
@@ -339,26 +342,26 @@ public class Board extends JPanel implements MouseListener{
 	    }
 	}
 	
-	public void move(int startI,int startJ,int endX,int endY){
-		if(pieces[endX][endY] != null && (pieces[endX][endY].getName().equals("T.R") || pieces[endX][endY].getName().equals("��"))){//if king is dead
+	public void move(int startI,int startJ,int endX,int endY) throws IOException{
+		if(pieces[endX][endY] != null && (pieces[endX][endY].getName().equals(".") || pieces[endX][endY].getName().equals("."))){//if king is dead
 	    	pieces[endX][endY] = pieces[startI][startJ];
 		    pieces[startI][startJ] = null;
-		    this.cchess.repaint();//paint the move
-//	    	JOptionPane.showMessageDialog(this.cchess,"Bạn thua, không được điểm","Message", JOptionPane.INFORMATION_MESSAGE);
-	    	this.cchess.act.challenger = null;
-			this.cchess.myColor = 0;
-			this.cchess.myTurn = false;
-			this.cchess.next();//ready for the next game
+		    this.client.repaint();//paint the move
+	    	JOptionPane.showMessageDialog(this.client,"Bạn thua rồi, đầu hàng đi ","Message", JOptionPane.INFORMATION_MESSAGE);
+	    	this.client.act.challenger = null;
+			this.client.myColor = 0;
+			this.client.myTurn = false;
+			this.client.next();//ready for the next game
 			//reset the default properties
-			this.cchess.hostT.setEnabled(false);
-			this.cchess.portT.setEnabled(false);
-			this.cchess.userNameT.setEnabled(false);
-			this.cchess.connect.setEnabled(false);
-			this.cchess.disconnect.setEnabled(true);
-			this.cchess.challenge.setEnabled(true);
-			this.cchess.acceptChallenge.setEnabled(false);
-			this.cchess.declineChallenge.setEnabled(false);
-			this.cchess.surrender.setEnabled(false);
+			this.client.hostT.setEnabled(false);
+			this.client.portT.setEnabled(false);
+			this.client.userNameT.setEnabled(false);
+			this.client.connect.setEnabled(false);
+			this.client.disconnect.setEnabled(true);
+			this.client.challenge.setEnabled(false);
+			this.client.acceptChallenge.setEnabled(false);
+			this.client.declineChallenge.setEnabled(false);
+			this.client.surrender.setEnabled(true);
 			king1x = 4;
 			king1y = 0;
 			king2x = 4;
@@ -367,7 +370,7 @@ public class Board extends JPanel implements MouseListener{
 	    else{//king is not dead
 	    	pieces[endX][endY] = pieces[startI][startJ];
 		    pieces[startI][startJ] = null;//piece moved
-		    this.cchess.repaint();
+		    this.client.repaint();
 		    //if king moved
 		    if(pieces[endX][endY].getName().equals("T.R")){
 				king1x = endX;
@@ -387,21 +390,22 @@ public class Board extends JPanel implements MouseListener{
 					}
 				}
 				if(count == 0){
-//			    	JOptionPane.showMessageDialog(this.cchess,"Bạn thắng, bạn được +1đ!", "Message",JOptionPane.INFORMATION_MESSAGE);
-			    	this.cchess.act.challenger = null;
-					this.cchess.myColor = 0;
-					this.cchess.myTurn = false;
-					this.cchess.next();//ready for the next game
+//			    	JOptionPane.showMessageDialog(this.client,"Bạn thắng rồi", "Message",JOptionPane.INFORMATION_MESSAGE);
+//                                this.client.act.output.writeUTF("WINNER");
+			    	this.client.act.challenger = null;
+					this.client.myColor = 0;
+					this.client.myTurn = false;
+					this.client.next();//ready for the next game
 					//reset the default properties
-					this.cchess.hostT.setEnabled(false);
-					this.cchess.portT.setEnabled(false);
-					this.cchess.userNameT.setEnabled(false);
-					this.cchess.connect.setEnabled(false);
-					this.cchess.disconnect.setEnabled(true);
-					this.cchess.challenge.setEnabled(true);
-					this.cchess.acceptChallenge.setEnabled(false);
-					this.cchess.declineChallenge.setEnabled(false);
-					this.cchess.surrender.setEnabled(false);
+					this.client.hostT.setEnabled(false);
+					this.client.portT.setEnabled(false);
+					this.client.userNameT.setEnabled(false);
+					this.client.connect.setEnabled(false);
+					this.client.disconnect.setEnabled(true);
+					this.client.challenge.setEnabled(true);
+					this.client.acceptChallenge.setEnabled(false);
+					this.client.declineChallenge.setEnabled(false);
+					this.client.surrender.setEnabled(false);
 					king1x = 4;
 					king1y = 0;
 					king2x = 4;
@@ -409,7 +413,7 @@ public class Board extends JPanel implements MouseListener{
 				}
 			}
 	    }
-		this.cchess.repaint();
+		this.client.repaint();
 	}
 	
 	public void mousePressed(MouseEvent e){

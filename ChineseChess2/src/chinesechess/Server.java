@@ -6,9 +6,9 @@ import javax.swing.*;
 import java.net.*;
 
 public class Server extends JFrame implements ActionListener{
-	//graphical user interface setup
+	
 	JLabel portID = new JLabel("Port ID");
-	JTextField enterID = new JTextField("1111");//default port id number
+	JTextField enterID = new JTextField("1111");//cổng mặc định
 	JButton startButton = new JButton("Mở");
 	JButton stopButton = new JButton("Đóng");
 	JPanel panel = new JPanel();//reserved as the main frame for the components
@@ -20,14 +20,14 @@ public class Server extends JFrame implements ActionListener{
 	Vector players = new Vector();
 	
 	public Server(){
-		this.initialComponent();//add the components
+		this.initialComponent();//thêm các nút
 		this.startButton.addActionListener(this);
 		this.stopButton.addActionListener(this);
 		this.initialFrame();
 	}
 	
 	public void initialComponent(){
-		//adding components to the panel
+		//set vị trí
 		panel.setLayout(null);
 		portID.setBounds(20, 20, 50, 20);
 		panel.add(portID);
@@ -41,8 +41,8 @@ public class Server extends JFrame implements ActionListener{
 	}
 	
 	public void initialFrame(){
-	    //basic setups
-		this.setTitle("Chinese Chess -- Server");
+	    //frame
+		this.setTitle("Game Cờ Tướng-Server");
 		this.add(splitPane);
 		splitPane.setDividerLocation(250);
 		splitPane.setDividerSize(4);
@@ -50,18 +50,18 @@ public class Server extends JFrame implements ActionListener{
 		this.setVisible(true);
 		
 		this.addWindowListener(new WindowAdapter(){
-					//when window is closed
+					//đóng cửa sổ
 					public void windowClosing(WindowEvent e){
-						if(serthread == null){//if no server, then just exit
+						if(serthread == null){//không mở nếu không mở luồng
 							System.exit(0);
 							return;
 						}
-						try{// otherwise tell each user that server window is closed
+						try{// Gửi thông điệp tắt server đến các client khi thoát cửa sổ
 							Vector v = players;
 							int size = v.size();
 							for(int i = 0; i < size; ++i){
 								AgentServerThread tempSat = (AgentServerThread)v.get(i);
-								tempSat.output.writeUTF("<#SERVER_DOWN#>");
+								tempSat.output.writeUTF("SERVER_DOWN");
 							    tempSat.connected = false;
 							}
 							serthread.connected = false;
@@ -78,16 +78,15 @@ public class Server extends JFrame implements ActionListener{
 				});
 	}
 	
-    //wrapper method
 	public void actionPerformed(ActionEvent event){
 		
 		if(event.getSource() == this.startButton){
-			//when start button is pressed
+			//click mở
 			this.startActions();
 		}
 		
 		if(event.getSource() == this.stopButton){
-			//when stop button is pressed
+			//click đóng
 			this.stopActions();
 		}
 	}
@@ -95,7 +94,7 @@ public class Server extends JFrame implements ActionListener{
 	public void startActions(){
 		int port = 0;
 		try{
-			// get the value entered in the TextField
+			// lấy giá trị cổng
 			port = Integer.parseInt(this.enterID.getText().trim());
 		}
 		catch(Exception ee){
@@ -106,18 +105,17 @@ public class Server extends JFrame implements ActionListener{
 			JOptionPane.showMessageDialog(this, "Giá trị cổng nhập sai","Error!", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		//id is valid, server starts
+		 
 		try{
 			this.startButton.setEnabled(false);
 			this.enterID.setEnabled(false);
 			this.stopButton.setEnabled(true);
-			socket = new ServerSocket(port);//identification socket
+			socket = new ServerSocket(port);//tạo socket
 			serthread = new ServerThread(this);
-			serthread.start();//start a thread for server
+			serthread.start();//chạy luồng
 			JOptionPane.showMessageDialog(this, "Server mở thành công!","Message", JOptionPane.INFORMATION_MESSAGE);
 		}catch(Exception ee){
-			JOptionPane.showMessageDialog(this, "Server sta36*+-069**9.030029*"
-                                + "\rt bị lỗi!","Error!", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Server bị lỗi!","Error!", JOptionPane.ERROR_MESSAGE);
 			this.startButton.setEnabled(true);
 			this.enterID.setEnabled(true);
 			this.stopButton.setEnabled(false);
@@ -128,13 +126,13 @@ public class Server extends JFrame implements ActionListener{
 		try{
 			Vector v = players;
 			int size = v.size();
-			//notify players of shut down
+			//thông báo khi tắt sever
 			for(int i = 0; i < size; ++i){
 				AgentServerThread tempSat = (AgentServerThread)v.get(i);
-				tempSat.output.writeUTF("<#SERVER_DOWN#>");
+				tempSat.output.writeUTF("SERVER_DOWN");
 				tempSat.connected = false;
 			}
-			//adjust components and setup
+			//
 			serthread.connected = false;
 			serthread = null;
 			socket.close();
@@ -148,15 +146,15 @@ public class Server extends JFrame implements ActionListener{
 		}
 	}
 	
-	//refresh the graphical list of current players
+	//hiển thị người online
 	public void refreshPlayers(){
-		//refresh the list of players
+		//tạo mới danh sách
 		Vector v = new Vector();
 		int size = this.players.size();
-		//goes through the actual players in the vector
+		//ghi danh sách
 		for(int i = 0 ; i < size; ++i){
 			AgentServerThread tempSat = (AgentServerThread)this.players.get(i);
-			String tempstr = tempSat.socket.getInetAddress().toString();//formatted string
+			String tempstr = tempSat.socket.getInetAddress().toString();
 			tempstr = tempstr+"|"+tempSat.getName();
 			v.add(tempstr);
 		}

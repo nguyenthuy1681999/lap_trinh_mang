@@ -13,17 +13,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AgentServerThread extends Thread{
-	//the main server who assigned this agent
-	Server father;
+	
+	Server server;
 	Socket socket;
-	// data input and output streams
+
 	DataInputStream input;
 	DataOutputStream output;
-	//thread indicator
+	// xác định kết nối
 	boolean connected = true;
-	//Constructor
-	public AgentServerThread(Server father,Socket sc){
-		this.father = father;
+
+	public AgentServerThread(Server server,Socket sc){
+		this.server = server;
 		this.socket = sc;
 		try{
 			input = new DataInputStream(sc.getInputStream());
@@ -36,33 +36,35 @@ public class AgentServerThread extends Thread{
 	
 	public void run(){
 		while(connected){
-			try{
-				String msg = input.readUTF().trim();//take in message from client
+			try{ 
+                                // nhận các thông điệp client gửi
+				String msg = input.readUTF().trim();
                                 
-				if(msg.startsWith("<#LOGIN__PLAYER#>")){//new user
+				if(msg.startsWith("LOGIN__PLAYER")){// đăng nhập
 					this.login(msg);
 				}
-				else if(msg.startsWith("<#CLIENT_LEAVE#>")){//user leaves
+				else if(msg.startsWith("CLIENT_LEAVE")){//đăng xuất
 					this.clientLeave(msg);
 				}
-				else if(msg.startsWith("<#CHALLENGE#>")){//challenge
+				else if(msg.startsWith("CHALLENGE")){//gửi thách đấu
 					this.challenge(msg);
 				}
-				else if(msg.startsWith("<#CHALACC#>")){//challenge accepted
+				else if(msg.startsWith("CHALACC")){//chấp nhận thách đấu
 					this.acceptChallenge(msg);
 				}
-				else if(msg.startsWith("<#CHAREJECT#>")){//challenge rejected
+				else if(msg.startsWith("CHAREJECT")){//từ chối thách đấu
 					this.declineChallenge(msg);
 				}
-				else if(msg.startsWith("<#BUSY#>")){//other player is busy
+				else if(msg.startsWith("BUSY")){// đối thủ bận
 					this.busy(msg);
 				}
-				else if(msg.startsWith("<#MOVE#>")){//a player's move
+				else if(msg.startsWith("MOVE")){//a player's move
 					this.move(msg);
 				}
-				else if(msg.startsWith("<#GIVEUP#>")){//surrender
+				else if(msg.startsWith("GIVEUP")){//surrender
 					this.surrender(msg);
-				}	
+				}
+                                
 			}
 			catch(Exception e){
 				e.printStackTrace();
@@ -126,24 +128,16 @@ public class AgentServerThread extends Thread{
         }
 	public void login(String msg) throws Exception{
 		try{
-//			String name = msg.substring(13);
+
                         String playerString[]= msg.split("-");
                         String name = playerString[1];
 			this.setName(name);
-			Vector v = father.players;
-//			boolean nameExists = false;
+			Vector v = server.players;
+
 			int size = v.size();
-//			search to see if name already exists
-//			for(int i = 0;i < size; ++i){
-//				AgentServerThread tempSat = (AgentServerThread)v.get(i);
-//				if(tempSat.getName().equals(name)){
-//					nameExists = true;
-//					break;
-//				}
-//			}
 
 			if(!checkPlayer(playerString[1],playerString[2])){
-				output.writeUTF("<#ERROR_LOGIN#>");
+				output.writeUTF("ERROR_LOGIN");
 				input.close();
 				output.close();
 				socket.close();
@@ -151,24 +145,21 @@ public class AgentServerThread extends Thread{
 			}
 			else{
 				v.add(this);
-				father.refreshPlayers();
-				String nickListMsg = "";
+				server.refreshPlayers();
+				String playerListMsg = "";
 				size=v.size();
-				//format the concatenated string
+				// tạo chuỗi gồm danh sách các người chơi online
 				for(int i = 0;i < size; ++i){
 					AgentServerThread tempSat = (AgentServerThread)v.get(i);
-					nickListMsg = nickListMsg+"|"+tempSat.getName();
+					playerListMsg = playerListMsg+"|"+tempSat.getName();
 				}
-				nickListMsg = "<#NICK_LIST#>"+nickListMsg;
-				Vector tempv = father.players;
+				playerListMsg = "NICK_LIST"+playerListMsg;
+				Vector tempv = server.players; // những client truy cập vào sever
 				size = tempv.size();
-				//send new user list and online message to everyone
-				for(int i = 0; i < size; ++i){
+				//gửi chuỗi danh sách online cho từng clinet
+				for(int i = 0; i < size; ++i){  
 					AgentServerThread satTemp = (AgentServerThread)tempv.get(i);
-					satTemp.output.writeUTF(nickListMsg);
-					if(satTemp != this){
-						satTemp.output.writeUTF("<#MSG#>"+this.getName()+" is online!");
-					}
+					satTemp.output.writeUTF(playerListMsg);
 				}
 			}
 		}
@@ -180,23 +171,17 @@ public class AgentServerThread extends Thread{
 	
 	public void clientLeave(String msg){
 		try{
-			Vector tempv = father.players;
+			Vector tempv = server.players;
 			tempv.remove(this);
 			int size = tempv.size();
-			String nl = "<#NICK_LIST#>";
-			//send offline message and get refreshed list of players
-			
-			for(int i = 0; i < size; ++i){
-				AgentServerThread satTemp = (AgentServerThread)tempv.get(i);
-				satTemp.output.writeUTF("<#MSG#>"+this.getName()+" is offline!");
-				nl = nl+"|"+satTemp.getName();
-			}
+			String nl = "NICK_LIST";
+
 			for(int i = 0; i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)tempv.get(i);
 				satTemp.output.writeUTF(nl);
 			}
 			this.connected = false;
-			father.refreshPlayers();
+			server.refreshPlayers();
 		}
 		catch(IOException e){
 			e.printStackTrace();
@@ -206,14 +191,14 @@ public class AgentServerThread extends Thread{
 	public void challenge(String msg){
 		try{
 			String name1 = this.getName();//challenger's name
-			String name2 = msg.substring(13);//challenged player's name
-			Vector v = father.players;
+			String name2 = msg.substring(9);//challenged player's name
+			Vector v = server.players;
 			int size = v.size();
 			//search for the user who is being challenged
 			for(int i = 0;i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)v.get(i);
 				if(satTemp.getName().equals(name2)){
-					satTemp.output.writeUTF("<#CHALLENGE#>"+name1);
+					satTemp.output.writeUTF("CHALLENGE"+name1);
 					break;
 				}
 			}
@@ -225,14 +210,14 @@ public class AgentServerThread extends Thread{
 	
 	public void acceptChallenge(String msg){
 		try{
-			String name = msg.substring(11);//challenger's name
-			Vector v = father.players;
+			String name = msg.substring(7);//lấy tên người thách đấu
+			Vector v = server.players;
 			int size = v.size();
-			//locate the user
+			//xác định tên người thách đấu trong danh sách online
 			for(int i = 0; i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)v.get(i);
 				if(satTemp.getName().equals(name)){
-					satTemp.output.writeUTF("<#CHALACC#>");
+					satTemp.output.writeUTF("CHALACC");
 					break;
 				}
 			}
@@ -244,14 +229,14 @@ public class AgentServerThread extends Thread{
 	
 	public void declineChallenge(String msg){
 		try{
-			String name = msg.substring(13);//challenger's name
-			Vector v = father.players;
+			String name = msg.substring(9);
+			Vector v = server.players;
 			int size = v.size();
-			//locate the user
+			
 			for(int i = 0; i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)v.get(i);
 				if(satTemp.getName().equals(name)){
-					satTemp.output.writeUTF("<#CHAREJECT#>");
+					satTemp.output.writeUTF("CHAREJECT");
 					break;
 				}
 			}
@@ -263,14 +248,14 @@ public class AgentServerThread extends Thread{
 	
 	public void busy(String msg){
 		try{
-			String name = msg.substring(8);//challenger's name
-			Vector v = father.players;
+			String name = msg.substring(4);
+			Vector v = server.players;
 			int size = v.size();
-			//locate the user
+			
 			for(int i = 0; i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)v.get(i);
 				if(satTemp.getName().equals(name)){
-					satTemp.output.writeUTF("<#BUSY#>");
+					satTemp.output.writeUTF("BUSY");
 					break;
 				}
 			}
@@ -282,10 +267,10 @@ public class AgentServerThread extends Thread{
 	
 	public void move(String msg){
 		try{
-			String name = msg.substring(8,msg.length()-4);//opponent's name
-			Vector v = father.players;
+			String name = msg.substring(4,msg.length()-4);// lấy tên đối thủ
+			Vector v = server.players;
 			int size = v.size();
-		    //locate opponent
+		    //xác định tên người thách đấu trong danh sách online
 			for(int i = 0; i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)v.get(i);
 				if(satTemp.getName().equals(name)){
@@ -301,23 +286,23 @@ public class AgentServerThread extends Thread{
 	
 	public void surrender(String msg) throws SQLException{
 		try{
-			String name = msg.substring(10);//opponent's name
-			Vector v = father.players;
+			String name = msg.substring(6);//lấy tên đối thủ
+			Vector v = server.players;
 			int size = v.size();
                         System.out.println("Nguoi dau hang: "+this.getName());
                         String winner = name;
                         String loser = this.getName();
                         calculateResult(winner, loser);
-			//locate the user
+			// xác định tên đối thủ
 			for(int i = 0; i < size; ++i){
 				AgentServerThread satTemp = (AgentServerThread)v.get(i);                             
 				if(satTemp.getName().equals(name)){
                                         System.out.println("Nguoi thang: "+name);
-					satTemp.output.writeUTF("<#WINNER#>");
+					satTemp.output.writeUTF("WINNER");
 					break;
 				}
 			}
-                        this.output.writeUTF("<#LOSER#>");
+                        this.output.writeUTF("LOSER");
 		}
 		catch(IOException e){
 			e.printStackTrace();
@@ -327,4 +312,6 @@ public class AgentServerThread extends Thread{
     private void printSQLException(SQLException e) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+   
 }

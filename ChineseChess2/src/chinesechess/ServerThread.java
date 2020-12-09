@@ -16,10 +16,10 @@ public class ServerThread extends Thread {
 	public void run(){
 		while(connected){
 			try{
-				// waits for clients and assign one server agent to each client
+				// Chờ yêu cầu chấp nhận từ client
 				Socket soc = socket.accept();
 				AgentServerThread sat = new AgentServerThread(mainServer, soc);
-				sat.start();//start the agent thread
+				sat.start();// khởi tạo luồng AgentServerThread
 			}
 			catch(Exception e){
 				e.printStackTrace();
