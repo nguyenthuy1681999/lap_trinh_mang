@@ -100,7 +100,11 @@ public class RegisterView extends JFrame implements ActionListener{
         user.setPassword(txtPassword.getText());
         UserDAO rdao = new UserDAO();
         rdao.addUser(user);
-        if(rdao.checkUser(user)) JOptionPane.showMessageDialog(this, "Add user successfullly!");
+        if(rdao.checkUser(user)){ 
+            JOptionPane.showMessageDialog(this, "Add user successfullly!");
+            LoginView loginView = new LoginView();
+            loginView.setVisible(true);
+        }
         else JOptionPane.showMessageDialog(this, "Add user fail!");
         }
         else JOptionPane.showMessageDialog(this, "Password Cofirm false!!!");

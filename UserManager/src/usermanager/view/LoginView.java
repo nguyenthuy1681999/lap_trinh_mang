@@ -62,7 +62,11 @@ public class LoginView extends JFrame implements ActionListener {
         
         UserDAO userDAO = new UserDAO();
         try {
-            if(userDAO.checkUser(user)) JOptionPane.showMessageDialog(this, "Login successfullly!");
+            if(userDAO.checkUser(user)) {
+             HomeView hw = new HomeView();
+             hw.setVisible(true);
+             this.setVisible(false);
+            }
             else JOptionPane.showMessageDialog(this, "Login fail!");
         } catch (Exception ex) {
             ex.printStackTrace();
